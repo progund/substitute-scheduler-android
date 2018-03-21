@@ -35,9 +35,9 @@ public class MainActivity extends AppCompatActivity {
 
     private void fillDateSpinner() {
         List<String> dates = new ArrayList<>();
-        dates.add("");
-        for (int i = 10; i < 20; i++) {
-            dates.add("2018-04-" + i);
+        dates.add("All");
+        for (int i = 15; i < 20; i++) {
+            dates.add("2018-01-" + i);
         }
         Spinner dateSpinner = findViewById(R.id.date_spinner);
         fillSpinner(dateSpinner, dates);
@@ -45,7 +45,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void fillSubstituteSpinner() {
         List<String> subs = new ArrayList<>();
-        subs.add("");
+        subs.add("All");
         subs.add("Dr Bullshy T");
         subs.add("Dr B Ulsheet");
 
