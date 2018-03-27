@@ -16,7 +16,9 @@ import org.json.JSONObject;
 
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import se.juneday.substitutescheduler.domain.Assignment;
 import se.juneday.substitutescheduler.domain.School;
@@ -26,9 +28,20 @@ public class AssignmentStore {
 
     private static final String LOG_TAG = AssignmentStore.class.getName() ;
 
-    private AssignmentListener listener;
     private static AssignmentStore instance;
-    private static Context context;
+
+    private AssignmentListener listener;
+    private Context context;
+    private Map<String, Integer> substituteMap;
+    private List<Substitute> subs;
+    private List<Assignment> assignments;
+
+
+    public enum FETCH_RETURN_CODES {
+        FETCH_SUCCEEDED,
+        FETCH_PARSE_ERROR,
+        FETCH_NETWORK_ERROR
+    };
 
     public static AssignmentStore getInstance(Context context) {
         if (instance==null) {
@@ -39,22 +52,54 @@ public class AssignmentStore {
 
     private AssignmentStore(Context context) {
         this.context = context;
+
+        // used to look up id for sub
+        substituteMap = new HashMap<>();
+
+        // Substitute teacher storage
+        subs = new ArrayList<>();
+        addFakeSubstitutes();
     }  // private to prevent instance creation
 
+    private void addFakeSubstitutes() {
+        subs.add(createSubstitute("Rikard", 1));
+        subs.add(createSubstitute("Henrik", 2));
+        subs.add(createSubstitute("Anders", 3));
+        subs.add(createSubstitute("Nahid", 4));
+        subs.add(createSubstitute("Conny", 5));
+        subs.add(createSubstitute("Svante", 6));
+        subs.add(createSubstitute("Elisabeth", 7));
+        subs.add(createSubstitute("Eva", 8));
+        subs.add(createSubstitute("Kristina", 9));
+        subs.add(createSubstitute("Bengt", 10));
+    }
+
+    public List<String> dates() {
+        List<String> dates = new ArrayList<>();
+        for (int i = 15; i < 20; i++) {
+            dates.add("2018-01-" + i);
+        }
+        return dates;
+    }
+
+    public List<Assignment> assignments() {
+        return assignments;
+    }
+
     public interface AssignmentListener {
-        public void assignmentReceived(List<Assignment> assignments);
+        public void assignmentsReceived(FETCH_RETURN_CODES code);
     }
 
     public void registerAssignmentListener(AssignmentListener listener) {
         this.listener = listener;
     };
 
-    /* fetch - with faked data and no network
+    /* fetchAssignments - with faked data and no network
 
-    public void fetch(int id, String date) {
+    public void fetchAssignments(int id, String date) {
         List<Assignment> assignments = new ArrayList<>();
 
-        Log.d(LOG_TAG, "fetch()");
+        Log.d(LOG_TAG, "fetchAssignments()");
 
         // Create some fake assignments
         School school = new School("Bullshit Academy", "at home");
@@ -74,12 +119,31 @@ public class AssignmentStore {
         // notify listener that new data has arrived
         if (listener!=null) {
             Log.d(LOG_TAG, "informing listener()");
-            listener.assignmentReceived(assignments);
+            listener.assignmentsReceived(assignments);
         } else {
             Log.d(LOG_TAG, "No listener registered");
         }
     }
     */
+
+    // This method is compensating for the lack of id lookup
+    private int idForSubstituteName(String name) {
+        return substituteMap.get(name);
+    }
+
+    private Substitute createSubstitute(String name, int id) {
+        substituteMap.put(name,id);
+        return new Substitute(name, id);
+    }
+
+    private Substitute createSubstitute(String name) {
+        return new Substitute(name, idForSubstituteName(name));
+    }
+
+
+    public List<Substitute> substitutes() {
+        return subs;
+    }
 
     private List<Assignment> jsonToAssignments(JSONArray array) {
         List<Assignment> assignments = new ArrayList<>();
@@ -92,7 +156,7 @@ public class AssignmentStore {
                 School school = new School(schoolJson.getString("school_name"), schoolJson.getString("address"));
 
                 JSONObject substituteJson = row.getJSONObject("substitute");
-                Substitute substitute = new Substitute(substituteJson.getString("name"));
+                Substitute substitute = createSubstitute(substituteJson.getString("name"));
 
                 Log.d(LOG_TAG, " * " + substitute);
 
@@ -107,10 +171,15 @@ public class AssignmentStore {
         return assignments;
     }
 
-    public void fetch(String id, String date) {
-        List<Assignment> assignments = new ArrayList<>();
+    public void fetchAll() {
+        // no need to fetch subs and dates ... server does not have 'em
+        fetchAssignments("","");
+    }
 
-        Log.d(LOG_TAG, "fetch()");
+    public void fetchAssignments(String id, String date) {
+        assignments = new ArrayList<>();
+
+        Log.d(LOG_TAG, "fetchAssignments()");
 
         RequestQueue queue = Volley.newRequestQueue(context);
 
@@ -126,14 +195,15 @@ public class AssignmentStore {
                     @Override
                     public void onResponse(JSONArray array) {
                         Log.d(LOG_TAG, "onResponse() " + array);
-                        List<Assignment> assignments = jsonToAssignments(array);
-                        listener.assignmentReceived(assignments);
+                        assignments = jsonToAssignments(array);
+                        listener.assignmentsReceived(FETCH_RETURN_CODES.FETCH_SUCCEEDED);
                     }
                 }, new Response.ErrorListener() {
 
             @Override
             public void onErrorResponse(VolleyError error) {
                 Log.d(LOG_TAG, " cause: " + error.getCause());
+                listener.assignmentsReceived(FETCH_RETURN_CODES.FETCH_NETWORK_ERROR);
             }
         });
 
