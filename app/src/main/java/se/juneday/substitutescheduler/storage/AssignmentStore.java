@@ -32,16 +32,7 @@ public class AssignmentStore {
 
     private AssignmentListener listener;
     private Context context;
-    private Map<String, Integer> substituteMap;
-    private List<Substitute> subs;
-    private List<Assignment> assignments;
-
-
-    public enum FETCH_RETURN_CODES {
-        FETCH_SUCCEEDED,
-        FETCH_PARSE_ERROR,
-        FETCH_NETWORK_ERROR
-    };
+    private Map<String, Substitute> substituteMap;
 
     public static AssignmentStore getInstance(Context context) {
         if (instance==null) {
@@ -50,28 +41,27 @@ public class AssignmentStore {
         return instance;
     }
 
+    // private to prevent instance creation
     private AssignmentStore(Context context) {
         this.context = context;
 
-        // used to look up id for sub
+        // Substitute teacher storage - and used to look up id for sub
         substituteMap = new HashMap<>();
 
-        // Substitute teacher storage
-        subs = new ArrayList<>();
         addFakeSubstitutes();
-    }  // private to prevent instance creation
+    }
 
     private void addFakeSubstitutes() {
-        subs.add(createSubstitute("Rikard", 1));
-        subs.add(createSubstitute("Henrik", 2));
-        subs.add(createSubstitute("Anders", 3));
-        subs.add(createSubstitute("Nahid", 4));
-        subs.add(createSubstitute("Conny", 5));
-        subs.add(createSubstitute("Svante", 6));
-        subs.add(createSubstitute("Elisabeth", 7));
-        subs.add(createSubstitute("Eva", 8));
-        subs.add(createSubstitute("Kristina", 9));
-        subs.add(createSubstitute("Bengt", 10));
+        createSubstitute("Rikard", 1);
+        createSubstitute("Henrik", 2);
+        createSubstitute("Anders", 3);
+        createSubstitute("Nahid", 4);
+        createSubstitute("Conny", 5);
+        createSubstitute("Svante", 6);
+        createSubstitute("Elisabeth", 7);
+        createSubstitute("Eva", 8);
+        createSubstitute("Kristina", 9);
+        createSubstitute("Bengt", 10);
     }
 
     public List<String> dates() {
@@ -82,12 +72,8 @@ public class AssignmentStore {
         return dates;
     }
 
-    public List<Assignment> assignments() {
-        return assignments;
-    }
-
     public interface AssignmentListener {
-        public void assignmentsReceived(FETCH_RETURN_CODES code);
+        public void assignmentsReceived(List<Assignment> assignments);
     }
 
     public void registerAssignmentListener(AssignmentListener listener) {
@@ -128,21 +114,21 @@ public class AssignmentStore {
 
     // This method is compensating for the lack of id lookup
     private int idForSubstituteName(String name) {
-        return substituteMap.get(name);
+        return substituteMap.get(name).id();
     }
 
     private Substitute createSubstitute(String name, int id) {
-        substituteMap.put(name,id);
-        return new Substitute(name, id);
+        Substitute s = new Substitute(name, id);
+        substituteMap.put(name, s);
+        return s;
     }
 
     private Substitute createSubstitute(String name) {
         return new Substitute(name, idForSubstituteName(name));
     }
 
-
     public List<Substitute> substitutes() {
-        return subs;
+        return new ArrayList<Substitute>(substituteMap.values());
     }
 
     private List<Assignment> jsonToAssignments(JSONArray array) {
@@ -177,7 +163,6 @@ public class AssignmentStore {
     }
 
     public void fetchAssignments(String id, String date) {
-        assignments = new ArrayList<>();
 
         Log.d(LOG_TAG, "fetchAssignments()");
 
@@ -195,15 +180,15 @@ public class AssignmentStore {
                     @Override
                     public void onResponse(JSONArray array) {
                         Log.d(LOG_TAG, "onResponse() " + array);
-                        assignments = jsonToAssignments(array);
-                        listener.assignmentsReceived(FETCH_RETURN_CODES.FETCH_SUCCEEDED);
+                        List <Assignment> assignments = jsonToAssignments(array);
+                        listener.assignmentsReceived(assignments);
                     }
                 }, new Response.ErrorListener() {
 
             @Override
             public void onErrorResponse(VolleyError error) {
                 Log.d(LOG_TAG, " cause: " + error.getCause());
-                listener.assignmentsReceived(FETCH_RETURN_CODES.FETCH_NETWORK_ERROR);
+                listener.assignmentsReceived(null);
             }
         });
 

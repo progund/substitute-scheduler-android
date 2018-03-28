@@ -8,6 +8,7 @@ import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
 import android.widget.Spinner;
+import android.widget.Toast;
 
 import java.util.List;
 
@@ -51,23 +52,23 @@ public class MainActivity extends AppCompatActivity {
         store.fetchAll();
     }
 
-    private void updateViews(AssignmentStore.FETCH_RETURN_CODES code) {
+    private void updateViews(List<Assignment> assignments) {
         Log.d(LOG_TAG, "updateViews()");
-        if (code == AssignmentStore.FETCH_RETURN_CODES.FETCH_SUCCEEDED) {
+        if (assignments != null) {
 
             // Assignments
-            updateListView();
+            updateListView(assignments);
 
             // Spinners
             updateSubstituteSpinner();
             updateDateSpinner();
 
         } else {
-            Log.d(LOG_TAG, "Failure: " + code);
+            Log.d(LOG_TAG, "Failure ... fetching assignments");
         }
     }
 
-    private void updateListView() {
+    private void updateListView(List<Assignment> assignments) {
         Log.d(LOG_TAG, "updateListView()");
 
         // Lookup ListView
@@ -76,7 +77,7 @@ public class MainActivity extends AppCompatActivity {
         // Create Adapter
         ArrayAdapter<Assignment> adapter = new ArrayAdapter<Assignment>(this,
                 android.R.layout.simple_list_item_1,
-                store.assignments());
+                assignments);
 
         // Set listView's adapter to the new adapter
         listView.setAdapter(adapter);
@@ -99,7 +100,7 @@ public class MainActivity extends AppCompatActivity {
                 new ArrayAdapter<String>(this,
                         android.R.layout.simple_spinner_item,
                         dates);
-        
+
         //  More space in spinner dropdown layout?, use
         //  adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
 
