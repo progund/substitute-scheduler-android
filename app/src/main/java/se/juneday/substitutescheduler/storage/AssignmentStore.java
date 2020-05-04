@@ -83,6 +83,11 @@ public class AssignmentStore {
     /* fetchAssignments - with faked data and no network
 
     public void fetchAssignments(int id, String date) {
+
+        // This method is calling the listener synchronously 
+        // ... when we later on implement this method with network calls
+        // the call to the listener will be made asynchronously
+
         List<Assignment> assignments = new ArrayList<>();
 
         Log.d(LOG_TAG, "fetchAssignments()");
